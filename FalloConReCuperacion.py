@@ -48,31 +48,39 @@ class Mensaje(Event):
                 tiempoRevivir
                 ):
         Event.__init__(self, name, time, target, source)
-        self.listaVivos = listaVivos
-        self.numHeartbeat = numHeartbeat
-        self.nodosQueMueren = nodosQueMueren
-        self.tiempoMuerte = tiempoMuerte
-        self.tiempoRevivir = tiempoRevivir
+        self.__listaVivos = listaVivos
+        self.__numHeartbeat = numHeartbeat
+        self.__nodosQueMueren = nodosQueMueren
+        self.__tiempoMuerte = tiempoMuerte
+        self.__tiempoRevivir = tiempoRevivir
 
-    def getListaVivos(self):
-        return self.listaVivos
+    
+    @property
+    def lista_vivos(self):
+        return self.__listaVivos
 
-    def getNumHeartbeat(self):
-        return self.numHeartbeat
+    @property
+    def num_heartbeat(self):
+        return self.__numHeartbeat
 
-    def getNodosQueMueren(self):
-        return self.nodosQueMueren
+    @property
+    def nodos_mueren(self):
+        return self.__nodosQueMueren
 
-    def getTiempoMuerte(self):
-        return self.tiempoMuerte
+    @property
+    def tiempo_muerte(self):
+        return self.__tiempoMuerte
 
-    def getTiempoRevivir(self):
-        return self.tiempoRevivir
+    @property
+    def tiempo_revivir(self):
+        return self.__tiempoRevivir
 
 
 class Algorithm2(Model):
 
+    
     def init(self):
+        # super().__init__()
         # print("inicializo algoritmo")
 
         self.lider = self.id
@@ -101,7 +109,7 @@ class Algorithm2(Model):
 
             # TODOS: Me despierto por primera vez
             # Pongo timer para saber si líder esta activo o no, e inicializo las variables que necesito
-            if event.getName() == "DESPIERTA":
+            if event.name == "DESPIERTA":
                 # Aunque esta en init debe reiniciarse las variables para el siguiente Run
                 self.lider = self.id
                 self.mejorCandidato = self.id
@@ -117,11 +125,12 @@ class Algorithm2(Model):
                 self.estadoAlerta = False
                 self.estadoElecciones = False
                 self.ignorarMensajes = False
-                self.nodosQueMueren = event.getNodosQueMueren()
-                self.tiempoMuerte = event.getTiempoMuerte()
-                self.tiempoRevivir = event.getTiempoRevivir()
+                self.nodosQueMueren = event.nodos_mueren
+                self.tiempoMuerte = event.tiempo_muerte
+                self.tiempoRevivir = event.tiempo_revivir
 
                 # Programa su muerte desde el inicio
+                print(self.nodosQueMueren)
                 if self.id in self.nodosQueMueren:
                     indexes = [i for i, x in enumerate(self.nodosQueMueren) if x == self.id]
                     print("Los indices son" + str(indexes)) 
@@ -142,12 +151,12 @@ class Algorithm2(Model):
 
             # Estado de alerta ##################################
             # Puede que le llegue cuando erea lider
-            if self.estadoAlerta and event.getName() != "OK" and event.getName() != "TIMER_HEARTBEAT":
+            if self.estadoAlerta and event.name != "OK" and event.name != "TIMER_HEARTBEAT":
                 self.estadoAlerta = False
                 # Inicia elecciones
-                if event.getName() == "HEARTBEAT":
-                    mensaje(self, "OK", event.getSource())
-                    self.numHeartbeat = event.getNumHeartbeat()
+                if event.name == "HEARTBEAT":
+                    mensaje(self, "OK", event.source)
+                    self.numHeartbeat = event.num_heartbeat
                     print(
                         "[" + str(self.clock) + "]:" + 
                         " Nodo: " + str(self.id) + 
@@ -156,7 +165,7 @@ class Algorithm2(Model):
                     setTimerEstadoLider(self)
                     self.timerReiniciado += 1
 
-                if event.getName() == "TIMERESTADO":
+                if event.name == "TIMERESTADO":
                     setPrint(
                         "[" + str(self.clock) + "]:" + 
                         " Nodo: " + str(self.id) + 
@@ -170,7 +179,7 @@ class Algorithm2(Model):
                     self.timerDespachadoAlerta = True
                     setTimerElecciones(self)
 
-                if event.getName() == "CANDIDATO":
+                if event.name == "CANDIDATO":
                     enviaCandidato(self, event)
                 # Hay dos lideres hizo decempate
                 # self.estadoAlerta = False
@@ -178,30 +187,30 @@ class Algorithm2(Model):
                     "[" + str(self.clock) + "]:" + 
                     " Nodo: " + str(self.id) + 
                     " Estado de alerta desactivado por " + 
-                    str(event.getName())
+                    str(event.name)
                     )
 
 
 
             # SoyLider #############################
             if self.soyLider:
-                print("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + "Soy Lider, me llega mensaje " + str(event.getName()) + " de " + str(event.getSource()) )
+                print("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + "Soy Lider, me llega mensaje " + str(event.name) + " de " + str(event.source) )
                 # LIDER: Agrega a la lista los nodos que le respondieron
-                if event.getName() == "OK" and not self.ignorarMensajes:
-                    self.listaVivos.append(event.getSource())
+                if event.name == "OK" and not self.ignorarMensajes:
+                    self.listaVivos.append(event.source)
                     self.recienRevivido = False
-                if event.getName() == "HEARTBEAT" and not self.ignorarMensajes:
-                    if event.getNumHeartbeat() > self.numHeartbeat or (
-                            event.getNumHeartbeat() == self.numHeartbeat and event.getSource() > self.id) or (event.getNumHeartbeat() == self.numHeartbeat and self.recienRevivido):
+                if event.name == "HEARTBEAT" and not self.ignorarMensajes:
+                    if event.num_heartbeat > self.numHeartbeat or (
+                            event.num_heartbeat == self.numHeartbeat and event.source > self.id) or (event.num_heartbeat == self.numHeartbeat and self.recienRevivido):
                         self.soyLider = False
-                        self.lider = event.getSource()
+                        self.lider = event.source
                         setPrint(
                             "[" + str(self.clock) + "]:" + 
                             " Nodo: " + str(self.id) + 
                             " Mi reinado a terimando. Mi Heartbeat: " + 
                             str(self.numHeartbeat) + 
                             " Heartbeat del otro:" + 
-                            str(event.getNumHeartbeat()), 
+                            str(event.num_heartbeat), 
                             'muere'
                             )
                         # print("[" + str(self.clock) + "]:" + 
@@ -213,32 +222,32 @@ class Algorithm2(Model):
                     else:
                         setPrint("[" + str(self.clock) + "]:" + " Nodo: " + str(
                             self.id) + " YO SOY EL LIDER: " + str(self.id) + " Mi HeartBeat: " + str(
-                            self.numHeartbeat) + " Heartbeat del otro:" + str(event.getNumHeartbeat()), 'soyLider')
-                if event.getName() == "CANDIDATO":# and not self.estadoElecciones:
+                            self.numHeartbeat) + " Heartbeat del otro:" + str(event.num_heartbeat), 'soyLider')
+                if event.name == "CANDIDATO":# and not self.estadoElecciones:
                     if not self.estadoElecciones:
-                        setPrint("[" + str(self.clock) + "]:" + " Nodo: " +str(self.id) + " Soy lider y entro a elecciones porque recibi candidatura de: " + str(event.getSource()),"elecciones")
+                        setPrint("[" + str(self.clock) + "]:" + " Nodo: " +str(self.id) + " Soy lider y entro a elecciones porque recibi candidatura de: " + str(event.source),"elecciones")
                     enviaCandidato(self, event)
-                if event.getName() == "TIMER_HEARTBEAT":
+                if event.name == "TIMER_HEARTBEAT":
                     setHeartbeat(self)
                     setTimerHeartbeat(self)
 
             # No soy lider #################
             if not self.soyLider:
                 # Respondo al lider
-                if event.getName() == "HEARTBEAT" and not self.ignorarMensajes:
+                if event.name == "HEARTBEAT" and not self.ignorarMensajes:
                     print("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + " Mando timer estado respuesta a heartbeat")
                     setTimerEstadoLider(self)
                     self.timerReiniciado += 1
-                    mensaje(self, "OK", event.getSource())
-                    self.numHeartbeat = event.getNumHeartbeat()
+                    mensaje(self, "OK", event.source)
+                    self.numHeartbeat = event.num_heartbeat
                     print("[" + str(self.clock) + "]: " + "Nodo: " + str(self.id) + "Mando Ok al lider")
 
-                if event.getName() == "CANDIDATO":
+                if event.name == "CANDIDATO":
                     if not self.estadoElecciones:
-                        setPrint("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + " Entro a elecciones porque recibi candidatura de: " + str(event.getSource()), "elecciones")
+                        setPrint("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + " Entro a elecciones porque recibi candidatura de: " + str(event.source), "elecciones")
                     enviaCandidato(self, event)
 
-                if event.getName() == "TIMERESTADO" and not self.estadoAlerta and not self.timerDespachadoAlerta:
+                if event.name == "TIMERESTADO" and not self.estadoAlerta and not self.timerDespachadoAlerta:
                     if self.timerReiniciado != 0:
                         self.timerReiniciado -= 1
                         print("[" + str(self.clock) + "]: " + "Nodo: " + str(self.id) + " Ignoro este timer, viene otro atras, TIMERS A IGNORAR: " + str(self.timerReiniciado))
@@ -249,17 +258,17 @@ class Algorithm2(Model):
                         self.estadoAlerta = True
                         #self.timerReiniciado = False
 
-                if event.getName() == "TIMERESTADO" and self.timerDespachadoAlerta:
+                if event.name == "TIMERESTADO" and self.timerDespachadoAlerta:
                     self.timerDespachadoAlerta = False
             
             
             # Elecciones ############
             if self.estadoElecciones:
                 self.ignorarMensajes = True
-                if event.getName() == "CANDIDATO":
-                    if event.getSource() > self.mejorCandidato:  # Al inicio siempre es self.id
-                        self.mejorCandidato = event.getSource()
-                if event.getName() == "TIMERELECCIONES":  # Se terminan las elecciones
+                if event.name == "CANDIDATO":
+                    if event.source > self.mejorCandidato:  # Al inicio siempre es self.id
+                        self.mejorCandidato = event.source
+                if event.name == "TIMERELECCIONES":  # Se terminan las elecciones
                     print("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + " cierran elecciones" )
                     self.candidaturaMandada = False
                     self.estadoElecciones = False
@@ -280,7 +289,7 @@ class Algorithm2(Model):
 
 
             # TODOS: Simula el fallo
-            if event.getName() == "MUERO":
+            if event.name == "MUERO":
                 self.estoyVivo = False
                 if self.soyLider:
                     setPrint("[" + str(self.clock) + "]: " + "Nodo: " + str(self.id) + " Soy el lider " + str(self.id) + " y ME MUERO", 'muere')
@@ -299,7 +308,7 @@ class Algorithm2(Model):
 
         else:  # Estoy muerto. Ignoro todos los mensajes, excepto el que me revive.
 
-            if event.getName() == "REVIVE":
+            if event.name == "REVIVE":
                 self.estoyVivo = True
                 if self.soyLider:
                     setPrint("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + " Que se armen ya revivi: " + str(self.id) + " Heartbeat: " + str(self.numHeartbeat), 'revivir')
@@ -349,15 +358,15 @@ def setHeartbeat(self):
 
 
 def enviaCandidato(self, event):
-    if event.getSource() > self.mejorCandidato:
+    if event.source > self.mejorCandidato:
         print(
             "[" + str(self.clock) + "]:" + 
             " Nodo: " + str(self.id) + 
             " !enviaCandidato! No soy mejor candidato que " + 
-            str(event.getSource()) + 
+            str(event.source) + 
             " no mando nada"
             )
-        self.mejorCandidato = event.getSource()
+        self.mejorCandidato = event.source
     else:
         if not self.candidaturaMandada:
             print(
@@ -373,7 +382,7 @@ def enviaCandidato(self, event):
             "[" + str(self.clock) + "]:" + 
             " Nodo: " + str(self.id) + 
             " !enviaCandidato! Inicio estado de elecciones por candidatura " + 
-            str(event.getSource())
+            str(event.source)
             )
         setTimerElecciones(self)
     else:
@@ -381,7 +390,7 @@ def enviaCandidato(self, event):
             "[" + str(self.clock) + "]:" + 
             " Nodo: " + str(self.id) + 
             " !enviaCandidato! Ya estoy en eleccinoes activas me llego candidato de: " + 
-            str(event.getSource())
+            str(event.source)
             )
     self.estadoElecciones = True
     
@@ -472,9 +481,6 @@ def setTimerEstadoLider(self):
 # experiment = Simulation(sys.argv[1], 50)
 
 experiment = Simulation("topo.txt" , 500)
-
-
-
 for i in range(1, len(experiment.graph) + 1):
     m = Algorithm2()
     experiment.setModel(m, i)
