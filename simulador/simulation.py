@@ -22,9 +22,11 @@ class Simulation:
         self.table = [[]]
         
         lineas_vacias = re.compile('\n')
-        f = open(filename)
-        lines = f.readlines()
-        f.close()
+        # f = open(filename)
+        # lines = f.readlines()
+        # f.close()
+        with open(filename, 'r') as topologia:
+            lines = topologia.readlines()
         for line in lines:
             fields = line.split()
             neighbors = []

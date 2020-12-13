@@ -3,93 +3,24 @@
 import sys
 import copy
 from simulador import Event, Model, Simulation
-
-import tkinter as tk
+# from GUI import setPrint, run
+from mensaje import Mensaje, mensaje
+import tkinter as tk        
 
 
 # Martinez Vargas Edgar Ivan
 #
 
-class Mensaje(Event):
-    """ Modifica la clase Event para agregar mas parametros necesarios para el algoritmo
-
-        Atributos:
-            name: Es el mensaje que será transmitido, Identifica que tipo de operación se llevara a cabo
-            time: El momento en el que se encolara la tarea para ser transmitida al nodo que le corresponde. (clock+tiempo)
-            target: El ID del nodo a quien va dirigido el mensaje.
-            source: EL ID del nodo quien manda el mensaje. (self.id)
-            listaVivos: Guarda la lista de los nodos activos.
-            numHeartBeat: Contador de los heartbeat realizados.
-            nodosQueMueren: Contiene la lista de los nodos que van a fallar.
-            tiempoMuerte: Contiene la lista con los tiempos en los que los nodos van a fallar
-            tiempoRevivir: Contiene la lista con los tiempo en los que los nodos van a regresar después de que hayan fallado.
-
-        Los siguientes atributos son determinados desde el inicio del algoritmo a traves del GUI y no pueden ser
-        modficados una vez incializado:
-            nodosQueMueren
-            tiempoMuerte
-            tiempoRevivir
-
-        Los siguientes atributos solo pueden ser modificados si el nodo esta identificado como líder:
-            numHeartBeart: Se puede modificar la frecuencia en la que el líder manda un heartbeat atraves de GUI
-            listaVivos: La información de quien esta activo la recibe el líder con una confirmación de cada nodo
-                        después de su ultimo heartbeat emitido.
-    """
-
-    def __init__(self, 
-                name, 
-                time, 
-                target, 
-                source, 
-                listaVivos, 
-                numHeartbeat, 
-                nodosQueMueren, 
-                tiempoMuerte,
-                tiempoRevivir
-                ):
-        Event.__init__(self, name, time, target, source)
-        self.__listaVivos = listaVivos
-        self.__numHeartbeat = numHeartbeat
-        self.__nodosQueMueren = nodosQueMueren
-        self.__tiempoMuerte = tiempoMuerte
-        self.__tiempoRevivir = tiempoRevivir
-
-    
-    @property
-    def lista_vivos(self):
-        return self.__listaVivos
-
-    @property
-    def num_heartbeat(self):
-        return self.__numHeartbeat
-
-    @property
-    def nodos_mueren(self):
-        return self.__nodosQueMueren
-
-    @property
-    def tiempo_muerte(self):
-        return self.__tiempoMuerte
-
-    @property
-    def tiempo_revivir(self):
-        return self.__tiempoRevivir
-
-
 class Algorithm2(Model):
 
     
     def init(self):
-        # super().__init__()
-        # print("inicializo algoritmo")
-
         self.lider = self.id
         self.mejorCandidato = self.id
         self.soyLider = False  # Nos ayudara a saber cuando hay dos lideres (?)
         self.estoyVivo = True
         self.listaVivos = [100] * len(self.neighbors)
         self.numHeartbeat = 0
-
         self.recienRevivido = False
         # Nuevos
         self.candidaturaMandada = False
@@ -107,7 +38,6 @@ class Algorithm2(Model):
 
         if self.estoyVivo:  # EL nodo esta activo
 
-            # TODOS: Me despierto por primera vez
             # Pongo timer para saber si líder esta activo o no, e inicializo las variables que necesito
             if event.name == "DESPIERTA":
                 # Aunque esta en init debe reiniciarse las variables para el siguiente Run
@@ -191,7 +121,6 @@ class Algorithm2(Model):
                     )
 
 
-
             # SoyLider #############################
             if self.soyLider:
                 print("[" + str(self.clock) + "]:" + " Nodo: " + str(self.id) + "Soy Lider, me llega mensaje " + str(event.name) + " de " + str(event.source) )
@@ -201,7 +130,8 @@ class Algorithm2(Model):
                     self.recienRevivido = False
                 if event.name == "HEARTBEAT" and not self.ignorarMensajes:
                     if event.num_heartbeat > self.numHeartbeat or (
-                            event.num_heartbeat == self.numHeartbeat and event.source > self.id) or (event.num_heartbeat == self.numHeartbeat and self.recienRevivido):
+                        event.num_heartbeat == self.numHeartbeat and event.source > self.id) or (
+                        event.num_heartbeat == self.numHeartbeat and self.recienRevivido):
                         self.soyLider = False
                         self.lider = event.source
                         setPrint(
@@ -213,12 +143,7 @@ class Algorithm2(Model):
                             str(event.num_heartbeat), 
                             'muere'
                             )
-                        # print("[" + str(self.clock) + "]:" + 
-                        #     " Nodo: " + str(self.id) + 
-                        #     " Mando timer estado termino ser lider"
-                        #     )
                         setTimerEstadoLider(self)
-                       # self.timerReiniciado += 1
                     else:
                         setPrint("[" + str(self.clock) + "]:" + " Nodo: " + str(
                             self.id) + " YO SOY EL LIDER: " + str(self.id) + " Mi HeartBeat: " + str(
@@ -288,7 +213,7 @@ class Algorithm2(Model):
                         self.timerReiniciado += 1
 
 
-            # TODOS: Simula el fallo
+            # Simula el fallo
             if event.name == "MUERO":
                 self.estoyVivo = False
                 if self.soyLider:
@@ -300,11 +225,6 @@ class Algorithm2(Model):
                 newevent = Event("REVIVE", self.clock + tiempo, self.id, self.id)
                 self.transmit(newevent)
 
-            #! TODOS: Criterio para fallo
-            #if self.id in self.nodosQueMueren:
-            #    index = self.nodosQueMueren.index(self.id)
-            #    if self.clock == self.tiempoMuerte[index] - 1.0:
-            #        mensaje(self, "MUERO", self.id)
 
         else:  # Estoy muerto. Ignoro todos los mensajes, excepto el que me revive.
 
@@ -439,10 +359,6 @@ def setPrint(s, tipo):
     tex.see(tk.END)
 
 
-def mensaje(self, mensaje, destino):
-    newevent = Event(mensaje, self.clock + 1.0, destino, self.id)
-    self.transmit(newevent)
-
     """ Encargado de programar el timer al tiempo indicado en el GUI que checara el estado del líder
         IMPORTANTE: El timer tiene que ser más largo que el hearbeat, mínimo igual """
 
@@ -480,7 +396,7 @@ def setTimerEstadoLider(self):
 #     raise SystemExit(1)
 # experiment = Simulation(sys.argv[1], 50)
 
-experiment = Simulation("topo.txt" , 500)
+experiment = Simulation("topo.txt" , 50)
 for i in range(1, len(experiment.graph) + 1):
     m = Algorithm2()
     experiment.setModel(m, i)
@@ -491,18 +407,21 @@ def start():
     tiempoMueren = inputToList(tiempoMuerte.get())
     tiempoReviven = inputToList(tiempoRevive.get())
 
-    seed = Mensaje("DESPIERTA", 0.0, 1, 1, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
-    seed2 = Mensaje("DESPIERTA", 0.0, 2, 2, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
-    seed3 = Mensaje("DESPIERTA", 0.0, 3, 3, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
-    seed4 = Mensaje("DESPIERTA", 0.0, 4, 4, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
-
-    experiment.init(seed)
-    experiment.init(seed2)
-    experiment.init(seed3)
-    experiment.init(seed4)
+    for i in range(1,5):
+        seed = Mensaje("DESPIERTA", 0.0, i, i, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
+        experiment.init(seed)
+    # seed = Mensaje("DESPIERTA", 0.0, 1, 1, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
+    # seed2 = Mensaje("DESPIERTA", 0.0, 2, 2, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
+    # seed3 = Mensaje("DESPIERTA", 0.0, 3, 3, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
+    # seed4 = Mensaje("DESPIERTA", 0.0, 4, 4, [], 0, listaMuertos, tiempoMueren, tiempoReviven)
+    # experiment.init(seed)
+    # experiment.init(seed2)
+    # experiment.init(seed3)
+    # experiment.init(seed4)
     experiment.run()
 
 
+#GUI
 root = tk.Tk()
 root.title("Simulador de eleccion de lider ")
 
@@ -534,7 +453,6 @@ run = tk.Button(root, text="Run", command=start)  # padx=15,pady=15
 exit = tk.Button(root, text='Salir', command=root.destroy)
 
 # Looks
-# clean.grid(row=7,column=0)
 
 quienMuereL.grid(row=0, column=0)
 quienMuere.grid(row=1, column=0, sticky=tk.N)
